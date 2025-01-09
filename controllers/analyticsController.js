@@ -50,7 +50,7 @@ const getAnalytics = async (req, res) => {
     console.error("Analytics error:", error);
     res.status(500).json({ message: "Error fetching analytics" });
   }
-};
+}; 
 
 // Get button click analytics
 const getButtonClicks = async (req, res) => {
