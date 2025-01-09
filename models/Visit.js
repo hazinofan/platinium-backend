@@ -2,13 +2,13 @@ const mongoose = require("mongoose");
 
 const visitSchema = new mongoose.Schema({
   ip: String,
-  userId: String, // Unique User ID
-  location: Object,
+  userId: String,
+  location: Object, // Stores country, region, and city data
   userAgent: Object,
   referrer: String,
   page: String,
   timeSpent: Number,
-  isReturning: Boolean, // True if the user visited before
+  isReturning: Boolean,
   timestamp: { type: Date, default: Date.now },
 });
 
