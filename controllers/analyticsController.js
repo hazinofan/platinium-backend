@@ -8,17 +8,20 @@ const Scroll = require("../models/Scroll");
 // Track user visits & time spent on page
 const trackVisit = async (req, res) => {
   try {
-    const { ip, userId, referrer, page, timeSpent } = req.body;
+    const { ip, userId, referrer, page } = req.body;
     const location = geoip.lookup(ip); // Get country, region, and city
+
+    // Ignore self-referrals (users visiting from the same domain)
+    if (referrer && referrer.includes("yourwebsite.com")) {
+      return res.status(200).json({ message: "Self-referrals ignored" });
+    }
 
     const visit = new Visit({
       ip,
       userId,
-      location, // Save location data
-      referrer,
+      location,
+      referrer: referrer || "Direct", // Store "Direct" if no referrer
       page,
-      timeSpent,
-      isReturning: await Visit.exists({ userId }) ? true : false,
     });
 
     await visit.save();
@@ -29,18 +32,34 @@ const trackVisit = async (req, res) => {
   }
 };
 
+
 // how many clients from one countrie
 const getVisitorCountries = async (req, res) => {
   try {
-    const countries = await Visit.aggregate([
-      { $group: { _id: "$location.country", count: { $sum: 1 } } },
-      { $sort: { count: -1 } }
+    const countriesPerDay = await Visit.aggregate([
+      {
+        $group: {
+          _id: { date: { $substr: ["$timestamp", 0, 10] }, country: "$location.country" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.date": -1, count: -1 } } // Sort by most recent date and highest count
     ]);
 
-    res.status(200).json(countries);
+    const totalCountries = await Visit.aggregate([
+      {
+        $group: {
+          _id: "$location.country",
+          totalCount: { $sum: 1 }
+        }
+      },
+      { $sort: { totalCount: -1 } }
+    ]);
+
+    res.status(200).json({ countriesPerDay, totalCountries });
   } catch (error) {
-    console.error("Error fetching country analytics:", error);
-    res.status(500).json({ message: "Error fetching country data" });
+    console.error("Error fetching visitor country analytics:", error);
+    res.status(500).json({ message: "Error fetching visitor country data" });
   }
 };
 
@@ -90,9 +109,14 @@ const getButtonClicks = async (req, res) => {
 
 const trackClick = async (req, res) => {
   try {
-    const { userId, page, x, y } = req.body;
+    const { userId, page, x, y, buttonName } = req.body;
 
-    const click = new Click({ userId, page, x, y });
+    // Prevent tracking clicks on admin pages
+    if (page === "/admin/login" || page === "/admin/dashboard") {
+      return res.status(200).json({ message: "Clicks on this page are not tracked" });
+    }
+
+    const click = new Click({ userId, page, x, y, buttonName });
     await click.save();
 
     res.status(200).json({ message: "Click recorded" });
@@ -101,6 +125,7 @@ const trackClick = async (req, res) => {
     res.status(500).json({ message: "Error tracking click" });
   }
 };
+
 
 const trackScroll = async (req, res) => {
   try {
@@ -121,7 +146,7 @@ const getTopReferrers = async (req, res) => {
     const referrers = await Visit.aggregate([
       { $group: { _id: "$referrer", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
-      { $limit: 5 },
+      { $limit: 5 } // Get only top 5 referrers
     ]);
 
     res.status(200).json(referrers);
@@ -132,6 +157,45 @@ const getTopReferrers = async (req, res) => {
 };
 
 
+const getClicks = async (req, res) => {
+  try {
+    const clicksPerDay = await Click.aggregate([
+      {
+        $group: {
+          _id: { date: { $substr: ["$timestamp", 0, 10] }, page: "$page" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.date": -1, count: -1 } } // Sort by date (most recent first) and count
+    ]);
+
+    const totalClicks = await Click.aggregate([
+      {
+        $group: {
+          _id: "$page",
+          totalCount: { $sum: 1 }
+        }
+      },
+      { $sort: { totalCount: -1 } }
+    ]);
+
+    res.status(200).json({ clicksPerDay, totalClicks });
+  } catch (error) {
+    console.error("Error fetching click data:", error);
+    res.status(500).json({ message: "Error fetching click data" });
+  }
+};
+
+
+const getScrollData = async (req, res) => {
+  try {
+    const scrolls = await Scroll.find().sort({ timestamp: -1 });
+    res.status(200).json(scrolls);
+  } catch (error) {
+    console.error("Scroll data fetching error:", error);
+    res.status(500).json({ message: "Error fetching scroll data" });
+  }
+};
 
 module.exports = { 
   trackVisit, 
@@ -141,6 +205,8 @@ module.exports = {
   trackClick, 
   trackScroll, 
   getTopReferrers,
-  getVisitorCountries  
+  getVisitorCountries,
+  getClicks,
+  getScrollData
 };
 

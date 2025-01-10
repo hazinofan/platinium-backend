@@ -7,7 +7,9 @@ const {
   trackClick, 
   trackScroll, 
   getTopReferrers,
-  getVisitorCountries
+  getVisitorCountries,
+  getClicks,
+  getScrollData
 } = require("../controllers/analyticsController");
 
 const router = express.Router();
@@ -23,6 +25,9 @@ router.post("/click", trackClick);      // Track clicks (heatmap data)
 router.post("/scroll", trackScroll);    // Track scroll depth
 router.get("/referrers", getTopReferrers); // Track referral sources
 router.get("/visitor-countries", getVisitorCountries);
+router.get("/clicks", getClicks);
+router.get("/scroll-data", getScrollData);
+
 
 /* ---------------------- BUTTON CLICK TRACKING ---------------------- */
 
