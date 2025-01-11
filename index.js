@@ -7,11 +7,29 @@ const connectDB = require("./config/db");
 // Import Routes
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const authRoutes = require("./routes/authRoutes");
+const allowedOrigins = [
+  "https://platinium-iptv.com", // Production domain
+  "http://localhost:3000",     // Local development
+];
+
 
 const app = express();
 
 // Middleware
-app.use(cors({ origin: "https://platinium-iptv.com", credentials: true })); // Allow frontend requests with cookies
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // Allow cookies and other credentials
+  })
+);
+ // Allow frontend requests with cookies
 app.use(express.json()); // Parse JSON requests
 app.use(cookieParser()); // Enable cookie parsing
 
