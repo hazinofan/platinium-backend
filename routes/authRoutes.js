@@ -10,6 +10,8 @@ router.post("/login", loginAdmin);
 // Admin Logout Route
 router.post("/logout", logoutAdmin);
 
+router.get("/auth/status", checkAuthStatus);
+
 // Example Protected Route (Requires Authentication)
 router.get("/dashboard", verifyAdmin, (req, res) => {
   res.json({ message: "Welcome to Admin Dashboard!" });

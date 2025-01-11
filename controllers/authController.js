@@ -39,3 +39,19 @@ exports.logoutAdmin = (req, res) => {
   res.clearCookie("admin_token");
   res.json({ message: "Logout successful" });
 };
+
+exports.checkAuthStatus = (req, res) => {
+  const token = req.cookies.admin_token;
+
+  if (!token) {
+    return res.json({ authenticated: false });
+  }
+
+  try {
+    jwt.verify(token, process.env.JWT_SECRET);
+    res.json({ authenticated: true });
+  } catch (error) {
+    res.json({ authenticated: false });
+  }
+};
+
