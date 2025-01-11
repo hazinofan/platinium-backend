@@ -4,6 +4,7 @@ const useragent = require("user-agent-parser");
 const geoip = require("geoip-lite");
 const Click = require("../models/Clicks");
 const Scroll = require("../models/Scroll");
+const iso3166 = require("iso-3166-1");
 
 // Track user visits & time spent on page
 const trackVisit = async (req, res) => {
@@ -56,7 +57,23 @@ const getVisitorCountries = async (req, res) => {
       { $sort: { totalCount: -1 } }
     ]);
 
-    res.status(200).json({ countriesPerDay, totalCountries });
+    // Convert country codes to full names
+    const convertCountry = (code) => {
+      const country = iso3166.whereAlpha2(code);
+      return country ? country.country : code; // Return full name or original code if not found
+    };
+
+    const formattedCountriesPerDay = countriesPerDay.map(entry => ({
+      _id: { date: entry._id.date, country: convertCountry(entry._id.country) },
+      count: entry.count
+    }));
+
+    const formattedTotalCountries = totalCountries.map(entry => ({
+      _id: convertCountry(entry._id),
+      totalCount: entry.totalCount
+    }));
+
+    res.status(200).json({ countriesPerDay: formattedCountriesPerDay, totalCountries: formattedTotalCountries });
   } catch (error) {
     console.error("Error fetching visitor country analytics:", error);
     res.status(500).json({ message: "Error fetching visitor country data" });
