@@ -15,7 +15,7 @@ const trackVisit = async (req, res) => {
     const location = geoip.lookup(ip); // Get country, region, and city
 
     // Ignore self-referrals (users visiting from the same domain)
-    if (referrer && referrer.includes("yourwebsite.com")) {
+    if (referrer && referrer.includes("https://platinium-iptv.com")) {
       return res.status(200).json({ message: "Self-referrals ignored" });
     }
 
@@ -188,7 +188,7 @@ const trackClick = async (req, res) => {
     const { userId, page, x, y, buttonName } = req.body;
 
     // Prevent tracking clicks on admin pages
-    if (page === "/admin/login" || page === "/admin/dashboard") {
+    if (page === "/admin/login" || page === "/admin/dashboard" || page === "/admin/reports") {
       return res.status(200).json({ message: "Clicks on this page are not tracked" });
     }
 
