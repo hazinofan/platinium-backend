@@ -6,7 +6,7 @@ const Click = require("../models/Clicks");
 const Scroll = require("../models/Scroll");
 const iso3166 = require("iso-3166-1");
 const fs = require("fs");
-const path = require("path");
+const Report = require("../models/Report");
 
 // Track user visits & time spent on page
 const trackVisit = async (req, res) => {
@@ -38,52 +38,42 @@ const trackVisit = async (req, res) => {
 // daily report 
 const getDailyReport = async (req, res) => {
   try {
-    const today = new Date().toISOString().slice(0, 10); // Get today's date (YYYY-MM-DD)
+    const today = new Date().toISOString().slice(0, 10);
 
-    // Fetch visits from today
+    // Fetch daily data
     const visits = await Visit.find({ timestamp: { $gte: new Date(today) } });
-
-    // Fetch clicks from today
     const clicks = await Click.find({ timestamp: { $gte: new Date(today) } });
-
-    // Fetch button clicks from today
     const buttonClicks = await ButtonClick.find({ date: today });
-
-    // Fetch referrals from today
     const referrals = await Visit.aggregate([
       { $match: { timestamp: { $gte: new Date(today) } } },
       { $group: { _id: "$referrer", count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
-
-    // Fetch visitors by country from today
     const visitorCountries = await Visit.aggregate([
       { $match: { timestamp: { $gte: new Date(today) } } },
       { $group: { _id: "$location.country", count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
 
-    // Structure the report data
-    const reportData = {
-      date: today,
-      visits: visits.length,
-      visitDetails: visits,
-      clicks: clicks.length,
-      clickDetails: clicks,
-      buttonClicks: buttonClicks,
-      referrals: referrals,
-      visitorCountries: visitorCountries,
-    };
+    // Check if the report already exists for today
+    let report = await Report.findOne({ date: today });
 
-    // Generate a file
-    const filePath = path.join(__dirname, `../reports/daily-report-${today}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(reportData, null, 2));
+    if (!report) {
+      report = new Report({
+        date: today,
+        visits: visits.length,
+        visitDetails: visits,
+        clicks: clicks.length,
+        clickDetails: clicks,
+        buttonClicks: buttonClicks,
+        referrals: referrals,
+        visitorCountries: visitorCountries
+      });
 
-    res.status(200).json({
-      message: "Daily report generated successfully",
-      reportData,
-      downloadLink: `/api/reports/daily-report-${today}.json`
-    });
+      await report.save();
+    }
+
+    res.status(200).json({ message: "Daily report stored successfully", report });
 
   } catch (error) {
     console.error("Error generating daily report:", error);
@@ -91,6 +81,16 @@ const getDailyReport = async (req, res) => {
   }
 };
 
+// get all reports
+const getAllReports = async (req, res) => {
+  try {
+    const reports = await Report.find().sort({ date: -1 }); // Get reports in descending order
+    res.status(200).json(reports);
+  } catch (error) {
+    console.error("Error fetching reports:", error);
+    res.status(500).json({ message: "Error fetching reports" });
+  }
+};
 
 
 // how many clients from one countrie
@@ -284,6 +284,7 @@ module.exports = {
   getVisitorCountries,
   getClicks,
   getScrollData,
-  getDailyReport
+  getDailyReport,
+  getAllReports
 };
 
