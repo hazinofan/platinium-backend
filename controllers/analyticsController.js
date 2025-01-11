@@ -5,6 +5,8 @@ const geoip = require("geoip-lite");
 const Click = require("../models/Clicks");
 const Scroll = require("../models/Scroll");
 const iso3166 = require("iso-3166-1");
+const fs = require("fs");
+const path = require("path");
 
 // Track user visits & time spent on page
 const trackVisit = async (req, res) => {
@@ -32,6 +34,63 @@ const trackVisit = async (req, res) => {
     res.status(500).json({ message: "Error tracking visit" });
   }
 };
+
+// daily report 
+const getDailyReport = async (req, res) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10); // Get today's date (YYYY-MM-DD)
+
+    // Fetch visits from today
+    const visits = await Visit.find({ timestamp: { $gte: new Date(today) } });
+
+    // Fetch clicks from today
+    const clicks = await Click.find({ timestamp: { $gte: new Date(today) } });
+
+    // Fetch button clicks from today
+    const buttonClicks = await ButtonClick.find({ date: today });
+
+    // Fetch referrals from today
+    const referrals = await Visit.aggregate([
+      { $match: { timestamp: { $gte: new Date(today) } } },
+      { $group: { _id: "$referrer", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Fetch visitors by country from today
+    const visitorCountries = await Visit.aggregate([
+      { $match: { timestamp: { $gte: new Date(today) } } },
+      { $group: { _id: "$location.country", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Structure the report data
+    const reportData = {
+      date: today,
+      visits: visits.length,
+      visitDetails: visits,
+      clicks: clicks.length,
+      clickDetails: clicks,
+      buttonClicks: buttonClicks,
+      referrals: referrals,
+      visitorCountries: visitorCountries,
+    };
+
+    // Generate a file
+    const filePath = path.join(__dirname, `../reports/daily-report-${today}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(reportData, null, 2));
+
+    res.status(200).json({
+      message: "Daily report generated successfully",
+      reportData,
+      downloadLink: `/api/reports/daily-report-${today}.json`
+    });
+
+  } catch (error) {
+    console.error("Error generating daily report:", error);
+    res.status(500).json({ message: "Error generating daily report" });
+  }
+};
+
 
 
 // how many clients from one countrie
@@ -224,6 +283,7 @@ module.exports = {
   getTopReferrers,
   getVisitorCountries,
   getClicks,
-  getScrollData
+  getScrollData,
+  getDailyReport
 };
 

@@ -9,7 +9,8 @@ const {
   getTopReferrers,
   getVisitorCountries,
   getClicks,
-  getScrollData
+  getScrollData,
+  getDailyReport
 } = require("../controllers/analyticsController");
 
 const router = express.Router();
@@ -27,6 +28,7 @@ router.get("/referrers", getTopReferrers); // Track referral sources
 router.get("/visitor-countries", getVisitorCountries);
 router.get("/clicks", getClicks);
 router.get("/scroll-data", getScrollData);
+router.get('/daily-reports', getDailyReport);
 
 
 /* ---------------------- BUTTON CLICK TRACKING ---------------------- */
