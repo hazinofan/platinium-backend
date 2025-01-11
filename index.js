@@ -11,7 +11,7 @@ const authRoutes = require("./routes/authRoutes");
 const app = express();
 
 // Middleware
-app.use(cors({ origin: "https://platinium-iptv.com/", credentials: true })); // Allow frontend requests with cookies
+app.use(cors({ origin: "https://platinium-iptv.com", credentials: true })); // Allow frontend requests with cookies
 app.use(express.json()); // Parse JSON requests
 app.use(cookieParser()); // Enable cookie parsing
 
