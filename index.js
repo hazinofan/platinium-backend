@@ -7,6 +7,7 @@ const connectDB = require("./config/db");
 // Import Routes
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const authRoutes = require("./routes/authRoutes");
+const blogRoutes = require('./routes/blogRoutes')
 const allowedOrigins = [
   "https://platinium-iptv.com", // Production domain
   "http://localhost:3000",     // Local development
@@ -39,6 +40,7 @@ connectDB();
 // Routes
 app.use("/api/auth", authRoutes); // Authentication Routes
 app.use("/api", analyticsRoutes); // Analytics Routes
+app.use("/api/blog", blogRoutes); // blogs Routes
 
 // Root Route
 app.get("/", (req, res) => {
